@@ -2,8 +2,10 @@ package com.example.mybatisdemo.service;
 
 import com.example.mybatisdemo.global.BizException;
 import com.example.mybatisdemo.mapper.ApiConfigMapper;
+import com.example.mybatisdemo.mapper.NameSpaceMapper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.apache.ibatis.builder.xml.XMLStatementBuilder;
+import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.parsing.XPathParser;
 import org.apache.ibatis.session.Configuration;
@@ -57,17 +59,27 @@ public class DataServiceApp {
         xml = MessageFormat.format(xml, uniqueId, sqlStr);
 
         Configuration configuration = sqlSessionFactory.getConfiguration();
+//        configuration.getMappedStatementNames();
+        configuration.getMappedStatements().removeIf(po -> po.getId().endsWith("a_1"));
 
         if (!configuration.getMappedStatementNames().contains(uniqueId)) {
 
             MapperBuilderAssistant mapperBuilderAssistant = new MapperBuilderAssistant(configuration, xml);
             XNode xNode = new XPathParser(xml).evalNode("select");
+            mapperBuilderAssistant.setCurrentNamespace(NameSpaceMapper.class.getName());
+
             XMLStatementBuilder xmlStatementBuilder =
                     new XMLStatementBuilder(configuration, mapperBuilderAssistant, xNode, configuration.getDatabaseId());
             xmlStatementBuilder.parseStatementNode();
-        }
 
-        List<Map<String, Object>> resultMapList = sqlSessionFactory.openSession().selectList(uniqueId, map);
+            MappedStatement mappedStatement = configuration.getMappedStatement(NameSpaceMapper.class.getName() + ".a1");
+//            mappedStatement.
+        }
+        List<Map<String, Object>> resultMapList = null;
+        try(SqlSession sqlSession = sqlSessionFactory.openSession();) {
+            resultMapList = sqlSession.selectList(uniqueId, map);
+
+        }
 
         Map<String, Object> returnMap = new HashMap<>();
         returnMap.put("dataList", resultMapList);
